@@ -1,0 +1,12 @@
+# run: conda env create --file environment.yml
+name: autoLabel
+channels:
+  - defaults
+dependencies:
+  - python>=3.6
+  # - conda-forge:opencv 
+  - conda-forge:scikit-learn
+  - numpy
+  - pip
+  - pip:
+    - opencv-python
