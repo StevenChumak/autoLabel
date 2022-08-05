@@ -1,10 +1,13 @@
+import sys
+import pathlib
+
 import cv2
 import matplotlib.pyplot as plt
-from utils import utils
 
-raillabel_path = r"C:\Users\St\Desktop\Git\raillabel"
+from utility import utils
 
-img = cv2.imread("001_prediction.png")  # read image
+img = cv2.imread("../001_input.png")  # read image
+mask = cv2.imread("../001_prediction.png")  # read image
 img_copy = img.copy()
 
 # colors used to color different classes
@@ -26,16 +29,38 @@ skeleton_trackbed = utils.skel_close_dila(trackbed_img)
 
 left, right = utils.rail_seperation(skeleton_rails, skeleton_trackbed)
 
-spline1 = utils.get_spline(left["x"], left["y"])
-spline2 = utils.get_spline(right["x"], right["y"])
+spline1 = utils.get_BSpline(left["x"], left["y"])
+spline2 = utils.get_BSpline(right["x"], right["y"])
 
-# plt.imshow(seperated, cmap=plt.cm.gray)
+from scipy import interpolate
+test = interpolate.UnivariateSpline(left["x"], left["y"])
+knots = test.get_knots()
 plt.plot(left["x"], left["y"], "g", lw=3)
 plt.plot(right["x"], right["y"], "r", lw=3)
 
 plt.plot(spline1["x"], spline1["y"], ":b", lw=3)
 plt.plot(spline2["x"], spline2["y"], "--g", lw=3)
 
+# lis = {"x": [], "y": []}
+lis = []
+for knot in knots:
+    for i, x in enumerate(left["x"]):
+        if x == knot:
+            # lis["x"].append(knot)
+            # lis["y"].append(left["y"][i])
+            lis.append([knot, left["y"][i]])
 
-# fig.tight_layout()
+    plt.axvline(knot,color='g')
+
+# import numpy as np
+
+# height = img.shape[0]
+# width = img.shape[1]
+# blank_image = np.zeros((height, width), np.uint8)
+
+# print(np.array([left["xy"]], dtype=np.int32))
+
+# cv2.fillConvexPoly(rail_img, np.array([left["xy"]], dtype=np.int32), color=(255, 255, 255))#, isClosed=True, thickness=1)
+# plt.imshow(rail_img)
+
 plt.show()

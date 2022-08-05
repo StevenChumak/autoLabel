@@ -1,14 +1,9 @@
-from ctypes import util
 import os
 import glob
+import math
 import cv2
 import numpy as np
-from utils import utils
-
-import hdbscan
-from sklearn.cluster import MiniBatchKMeans, KMeans
-import matplotlib.pyplot as plt
-from skimage.morphology import skeletonize, erosion, dilation, closing
+from numpy.polynomial import Laguerre
 
 # dir = r"/home/st/Desktop/best_images/"
 dir = r"C:\Users\St\Desktop\best_images"
@@ -21,13 +16,35 @@ assert len(predictions) > 0, "No images found at:\n\t{}".format(dir)
 
 color = [242, 202, 25]
 
+
+def mask_to_class(mask, color):
+    """
+    Change each value of a numpy array according to mapping.
+    Returns a uint8 numpy array with changed values
+    """
+
+    r = color[0]
+    g = color[1]
+    b = color[2]
+
+    holder = np.where(mask == [b, g, r], 255, 0)
+
+    return np.uint8(holder)
+
+
+import shutil
+
 for img in predictions:
+    # shutil.copy2(img, r"C:\Users\St\Desktop\test_dataset\images")
     img_data = cv2.imread(img)
     img_array = np.array(img_data)
 
-    rail_data = utils.mask_to_class(img_array, color=color)
+    rail_data = mask_to_class(img_array, color=color)
     rail_img = cv2.cvtColor(rail_data, cv2.COLOR_BGR2GRAY)
 
+    import hdbscan
+    from sklearn.cluster import MiniBatchKMeans, KMeans
+    import matplotlib.pyplot as plt
 
     blue = img_array[:, :, 0]
     red = img_array[:, :, 1]
@@ -46,6 +63,8 @@ for img in predictions:
 
     # clf = KMeans(n_clusters=3)
     # kmeans = clf.fit_predict(samples).reshape(rail_img.shape)
+
+    from skimage.morphology import skeletonize, erosion, dilation, closing
 
     close = closing(rail_img // 255)
     dila = dilation(rail_img // 255)
