@@ -172,10 +172,20 @@ def get_CatMul(previousResults):
     return utility.image_splines.calculate_splines(tuple(previousResults["image_points"]), steps=tuple(steps))
 
 
-def log_RailComp(interpol, original, previousResults):
+def plot_RailComp(interpol, original, previousResults, dist=None):
     plot = plot_ImagePoint(original, color=":b")
     plot = plot_ImagePoint(interpol, plot=plot, color=":g")
-    plot.legend(["Original","Interpolation"])
+
+    if dist:
+        x=[]
+        y=[]
+        for index in dist:
+            x.append(original[index].x)
+            y.append(-original[index].y)
+        plot.plot(x,y, "*r")
+        plot.legend(["Original","Interpolation", "max Distances"])
+    else:
+        plot.legend(["Original","Interpolation"])
     if not os.path.exists("fig"):
         os.mkdir("fig")
     name = "fig/comparison_left {}.png".format(len(previousResults["ind"])-1)
@@ -274,6 +284,7 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
     if not previousResults:
         # instantiate previousResults with first and last point of original
         # middle = len(original)//2
+
         first_x = original[0].x
         # middle_x = original[middle].x
         last_x = original[-1].x
@@ -308,52 +319,64 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
                 ImagePoint(last_x, last_y),
             ],
             "distance":[]
-            
         }
         
         # distance measurements depend on interpolation, 
         # if different interpolation is required changed it here
         # interpol = linearInterpol(previousResults, original)
-        # steps = len(original)//(len(previousResults["image_points"])-1)
-        interpolation = get_CatMul(previousResults)
-        distance_array, distance_sum = calc_EuclideanArray(original=original, inteprolation=interpolation)
-        previousResults["distance"].append(distance_sum)
-        if log:
-            log_RailComp(interpolation, original, previousResults)
-    
+        interpol = get_CatMul(previousResults)
     else:
-        interpolation = get_CatMul(previousResults)
-        distance_array, distance_sum = calc_EuclideanArray(original=original, inteprolation=interpolation)
+        # interpol = linearInterpol(previousResults, original)
+        interpol = get_CatMul(previousResults)
+
+        # using the results from linear interpolation calculate the euclidean distance between intepolated coordinate and measurement
+        original_arr = np.vstack([point.point for point in original])
+        interpol_arr = np.vstack([point.point for point in interpol])
         
-        if log:
-            log_RailComp(interpolation, original, previousResults)
+        if len(original_arr) != len(interpol_arr):
+            raise Exception("Interpolated line does not have the same amount of points as original: {}:{}".format(len(interpol_arr), len(original_arr)))
+
+        dist = []
+        for orig_point, inter_point in zip(original_arr, interpol_arr):
+            # calculate euclidean distance based on y-axis
+            dist.append(round(np.linalg.norm((orig_point-inter_point), 2), 2))
+            
+        distance_array = np.array(dist, dtype=np.float32)
+        distance_sum = np.sum(distance_array).item()
+        previousResults["distance"].append(distance_sum)
 
         # get all indexes with max distance
-        argmax_index = np.where(distance_array == np.amax(distance_array))[0].tolist()
+        argmax_indexes = np.where(distance_array == np.amax(distance_array))[0].tolist()
+        if log:
+            plot_RailComp(interpol, original, previousResults, dist=argmax_indexes)
+
         #  delete indexes which already have a knot in previousResults
         for elem in previousResults["ind"]:
-            argmax_index = [x for x in argmax_index if x != elem]
+            argmax_index = [x for x in argmax_indexes if x != elem]
 
         if len(argmax_index) == 1:
-            argmax_index = argmax_index[0]
+            argmax_index = [argmax_index[0]]
         else:
             # take the middle knot
             middle = len(argmax_index)//2
             try:
-                argmax_index = argmax_index[middle]
+                argmax_index = [argmax_index[middle]]
+                # argmax_index = [argmax_index[0], argmax_index[-1]]
             except:
-                raise Exception("Outta bounds {}".format(argmax_index[middle]))
+                raise Exception("Distance Index outta bounds {}".format(argmax_index[middle]))
+                # raise Exception("Distance Index outta bounds {} and {}".format(argmax_index[0], argmax_index[-1]))
 
         # use coordinates of point with biggest distance as knot
-        new_x = original[argmax_index].x
-        new_y = original[argmax_index].y
+        for i in argmax_index:
+            new_x = original[i].x
+            new_y = original[i].y
 
-        previousResults["x"].append(new_x)
-        previousResults["y"].append(new_y)
-        previousResults["xy"].append([new_x, new_y])
-        previousResults["image_points"].append(ImagePoint(new_x, new_y))
-        previousResults["ind"].append(argmax_index)
-        previousResults["distance"].append(distance_sum)
+            previousResults["x"].append(new_x)
+            previousResults["y"].append(new_y)
+            previousResults["xy"].append([new_x, new_y])
+            previousResults["image_points"].append(ImagePoint(new_x, new_y))
+            previousResults["ind"].append(i)
+
 
         # sort lists
         sorted_index = np.array(previousResults["ind"]).argsort()
@@ -362,11 +385,10 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
         previousResults["xy"] = (np.array(previousResults["xy"])[sorted_index]).tolist()
         previousResults["image_points"] = (np.array(previousResults["image_points"])[sorted_index]).tolist()
         previousResults["ind"] = (np.array(previousResults["ind"])[sorted_index]).tolist()
+        
 
-        if log:
-            log_RailComp(interpolation, original, previousResults)
+    return previousResults, interpol
 
-    return previousResults, interpolation
 
 
 def removeDuplicates(target):
