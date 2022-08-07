@@ -2,21 +2,20 @@ import shutil
 
 import cv2
 import matplotlib.pyplot as plt
-import splines
 import scipy.interpolate as interpolate
+import splines
 
 from utility import utils
 
 shutil.rmtree("fig", ignore_errors=True)
 
-from cProfile import label
 import math
 
+import matplotlib.pyplot as plt
 import numpy as np
-from skimage.morphology import skeletonize, binary_dilation, binary_closing
 from scipy import interpolate
 from scipy.spatial import distance
-import matplotlib.pyplot as plt
+from skimage.morphology import binary_closing, binary_dilation, skeletonize
 
 
 def mask_to_class(mask, color):
@@ -128,8 +127,10 @@ def rail_seperation(image, line):
 def get_BSpline(x, y, k=4, s=0, knots=None):
     tck, u = interpolate.splprep([x, y], k=k, s=s, t=knots)
     spline = interpolate.splev(u, tck)
-    xy=np.column_stack((np.array(spline[0], dtype=int), np.array(spline[1], dtype=int)))
-    return {"x": spline[0], "y": spline[1], "xy":xy, "tck": tck, "u": u}
+    xy = np.column_stack(
+        (np.array(spline[0], dtype=int), np.array(spline[1], dtype=int))
+    )
+    return {"x": spline[0], "y": spline[1], "xy": xy, "tck": tck, "u": u}
 
 
 def plot_rail(ax: plt.Axes, left, right, color):
@@ -143,15 +144,16 @@ def plot_rail(ax: plt.Axes, left, right, color):
     return ax
 
 
+import os
 
 import matplotlib.pyplot as plt
-import os
+
 
 def linearInterpol(list, points, compare=True):
     """
     I think this is a piecewise linear interpolation?
     """
-    output = {"x": [], "y": [], "xy": [], "m": [], "b":[]}
+    output = {"x": [], "y": [], "xy": [], "m": [], "b": []}
     for i in range(0, len(list["x"]) - 1):
         x1 = list["y"][i]
         x2 = list["y"][i + 1]
@@ -189,77 +191,79 @@ def linearInterpol(list, points, compare=True):
     if compare:
         plt.plot(points["x"], [-y for y in points["y"]], ":g")
         plt.plot(output["x"], [-y for y in output["y"]], ":b")
-        plt.legend(["Original","Interpolation"])
+        plt.legend(["Original", "Interpolation"])
         if not os.path.exists("fig"):
             os.mkdir("fig")
-        name = "fig/comparison_left {}.png".format(len(list["ind"])-1)
+        name = "fig/comparison_left {}.png".format(len(list["ind"]) - 1)
         if os.path.exists(name):
-            name = "fig/comparison_right {}.png".format(len(list["ind"])-1)
+            name = "fig/comparison_right {}.png".format(len(list["ind"]) - 1)
 
         plt.savefig(name)
-        plt.close() 
-    
+        plt.close()
+
     return output
 
 
 def approximateKnot(original, previousResults: dict = {}, minDistance=0):
     """
-        Approximate knots
+    Approximate knots
     """
     if not isinstance(original, (np.ndarray, np.generic, list, dict)):
         raise Exception("Expected list, dict or numpy array")
 
     if not previousResults:
         # instantiate previousResults with first and last point of original
-        middle = len(original["x"])//2
+        middle = len(original["x"]) // 2
         previousResults = {
-            "x": [
-                original["x"][0], 
-                original["x"][middle], 
-                original["x"][-1]
-                ],
-            "y": [
-                original["y"][0], 
-                original["y"][middle],
-                original["y"][-1]
-                ],
+            "x": [original["x"][0], original["x"][middle], original["x"][-1]],
+            "y": [original["y"][0], original["y"][middle], original["y"][-1]],
             "xy": [
-                [original["x"][0], original["y"][0]], 
+                [original["x"][0], original["y"][0]],
                 [original["x"][middle], original["y"][middle]],
-                [original["x"][-1], original["y"][-1]]
-                ],
-            "ind": [
-                0, 
-                middle, 
-                len(original["xy"])
-                ],
+                [original["x"][-1], original["y"][-1]],
+            ],
+            "ind": [0, middle, len(original["xy"])],
         }
-        
-        # distance measurements depend on interpolation, 
+
+        # distance measurements depend on interpolation,
         # if different interpolation is required changed it here
         # interpol = linearInterpol(previousResults, original)
         N = len(original["x"])
-        xmin, xmax = np.array(previousResults["x"]).min(), np.array(previousResults["x"]).max()
+        xmin, xmax = (
+            np.array(previousResults["x"]).min(),
+            np.array(previousResults["x"]).max(),
+        )
         xx = np.linspace(xmin, xmax, N)
-        t, c, k = interpolate.splrep(np.array(previousResults["x"]), np.array(previousResults["y"]), s=0, k=2)
+        t, c, k = interpolate.splrep(
+            np.array(previousResults["x"]), np.array(previousResults["y"]), s=0, k=2
+        )
         spline = interpolate.BSpline(t, c, k, extrapolate=False)
-        interpol={
+        interpol = {
             "x": xx,
             "y": spline(xx),
-            "xy": np.column_stack((np.array(xx, dtype=int), np.array(spline(xx), dtype=int)))
+            "xy": np.column_stack(
+                (np.array(xx, dtype=int), np.array(spline(xx), dtype=int))
+            ),
         }
     else:
         # interpol = linearInterpol(previousResults, original)
-        k = len(previousResults["x"])-1 if len(previousResults["x"]) < 5 else 4
+        k = len(previousResults["x"]) - 1 if len(previousResults["x"]) < 5 else 4
         N = len(original["x"])
-        xmin, xmax = np.array(previousResults["x"]).min(), np.array(previousResults["x"]).max()
+        xmin, xmax = (
+            np.array(previousResults["x"]).min(),
+            np.array(previousResults["x"]).max(),
+        )
         xx = np.linspace(xmin, xmax, N)
-        t, c, k = interpolate.splrep(previousResults["x"], previousResults["y"], s=0, k=k)
+        t, c, k = interpolate.splrep(
+            previousResults["x"], previousResults["y"], s=0, k=k
+        )
         spline = interpolate.BSpline(t, c, k, extrapolate=False)
-        interpol={
+        interpol = {
             "x": xx,
             "y": spline(xx),
-            "xy": np.column_stack((np.array(xx, dtype=int), np.array(spline(xx), dtype=int)))
+            "xy": np.column_stack(
+                (np.array(xx, dtype=int), np.array(spline(xx), dtype=int))
+            ),
         }
         dist = []
 
@@ -276,13 +280,13 @@ def approximateKnot(original, previousResults: dict = {}, minDistance=0):
             argmax_index = np.array(argmax_index).flatten()
             # delete indexes which already have a knot in previousResults
             for elem in previousResults["ind"]:
-                argmax_index = argmax_index[argmax_index!=elem]
+                argmax_index = argmax_index[argmax_index != elem]
 
             if len(argmax_index) == 1:
                 argmax_index = argmax_index.item()
             else:
                 # take the middle knot
-                middle = len(argmax_index)//2
+                middle = len(argmax_index) // 2
                 try:
                     argmax_index = argmax_index.item(middle)
                 except:
@@ -304,20 +308,21 @@ def approximateKnot(original, previousResults: dict = {}, minDistance=0):
         previousResults["x"] = (np.array(previousResults["x"])[sorted_index]).tolist()
         previousResults["y"] = (np.array(previousResults["y"])[sorted_index]).tolist()
         previousResults["xy"] = (np.array(previousResults["xy"])[sorted_index]).tolist()
-        previousResults["ind"] = (np.array(previousResults["ind"])[sorted_index]).tolist()
-        
+        previousResults["ind"] = (
+            np.array(previousResults["ind"])[sorted_index]
+        ).tolist()
+
         plt.plot(original["x"], [-y for y in original["y"]], ":g")
         plt.plot(interpol["x"], [-y for y in interpol["y"]], ":b")
-        plt.legend(["Original","Interpolation"])
+        plt.legend(["Original", "Interpolation"])
         if not os.path.exists("fig"):
             os.mkdir("fig")
-        name = "fig/comparison_left {}.png".format(len(previousResults["ind"])-1)
+        name = "fig/comparison_left {}.png".format(len(previousResults["ind"]) - 1)
         if os.path.exists(name):
-            name = "fig/comparison_right {}.png".format(len(previousResults["ind"])-1)
+            name = "fig/comparison_right {}.png".format(len(previousResults["ind"]) - 1)
 
         plt.savefig(name)
-        plt.close() 
-    
+        plt.close()
 
     return previousResults, interpol
 
@@ -336,7 +341,9 @@ def removeDuplicates(target):
 
 
 def approximateKnots(points, nKnots=20, minDistance=1):
-    approximatedKnots, linearInterpolation = approximateKnot(points, minDistance=minDistance)
+    approximatedKnots, linearInterpolation = approximateKnot(
+        points, minDistance=minDistance
+    )
     while len(approximatedKnots["x"]) < nKnots:
         approximatedKnots, linearInterpolation = approximateKnot(
             points, previousResults=approximatedKnots, minDistance=minDistance
@@ -377,11 +384,14 @@ nKnots = 20
 minDistance = 2
 
 approx_left, lin_left = approximateKnots(left, nKnots=nKnots, minDistance=minDistance)
-approx_right, lin_right = approximateKnots(right, nKnots=nKnots, minDistance=minDistance)
+approx_right, lin_right = approximateKnots(
+    right, nKnots=nKnots, minDistance=minDistance
+)
 
 
 def creatRailCoordinates(left, right, approx_left, approx_right):
     pass
+
 
 def createRailPolygon(original, knots):
     cv2.fillConvexPoly
@@ -389,6 +399,8 @@ def createRailPolygon(original, knots):
 
 
 import numpy as np
+
+
 def calculate_splines(
     points_arr,
     steps: int,
@@ -433,8 +445,8 @@ ax[2].set_title("approx interpol")
 
 print(np.argmin(lin_left["x"]))
 
-s1= calculate_splines([approx_left["x"], approx_left["y"]], 15)
-s2= calculate_splines([approx_right["x"], approx_right["y"]], 15)
+s1 = calculate_splines([approx_left["x"], approx_left["y"]], 15)
+s2 = calculate_splines([approx_right["x"], approx_right["y"]], 15)
 
 plot_rail(ax[3], s1, s2, ["*g", "*r"])
 ax[3].set_title("catmull romspline wth knots")

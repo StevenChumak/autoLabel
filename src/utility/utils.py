@@ -1,14 +1,15 @@
-import os
-import math
 import json
+import math
+import os
 
-import numpy as np
-from skimage.morphology import skeletonize, binary_dilation, binary_closing
-from scipy import interpolate
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy import interpolate
+from skimage.morphology import binary_closing, binary_dilation, skeletonize
 
+import utility.image_splines
 from utility.image_point import ImagePoint
-import utility.image_splines 
+
 
 def mask_to_class(mask, color):
     """
@@ -112,8 +113,8 @@ def rail_seperation(image, line):
                 x = w.item()
                 y = h
                 image_point = ImagePoint(
-                    w.item(),# x value
-                    h, # y value
+                    w.item(),  # x value
+                    h,  # y value
                 )
                 height_counter = 0
                 if w <= (np.asarray(line_pos).min() + np.asarray(line_pos).max()) // 2:
@@ -133,8 +134,10 @@ def rail_seperation(image, line):
 def get_BSpline(x, y, k=4, s=0, knots=None):
     tck, u = interpolate.splprep([x, y], k=k, s=s, t=knots)
     spline = interpolate.splev(u, tck)
-    xy=np.column_stack((np.array(spline[0], dtype=int), np.array(spline[1], dtype=int)))
-    return {"x": spline[0], "y": spline[1], "xy":xy, "tck": tck, "u": u}
+    xy = np.column_stack(
+        (np.array(spline[0], dtype=int), np.array(spline[1], dtype=int))
+    )
+    return {"x": spline[0], "y": spline[1], "xy": xy, "tck": tck, "u": u}
 
 
 def plot_rail(ax: plt.Axes, left, right, color):
@@ -150,9 +153,9 @@ def plot_rail(ax: plt.Axes, left, right, color):
 
 def plot_ImagePoint(points, plot=None, color=None):
     if not color:
-        color=":g"
-    x=[]
-    y=[]
+        color = ":g"
+    x = []
+    y = []
     for point in points:
         x.append(point.x)
         y.append(-point.y)
@@ -165,11 +168,13 @@ def plot_ImagePoint(points, plot=None, color=None):
 
 
 def get_CatMul(previousResults):
-    steps=[]
-    for i in range(0, len(previousResults["ind"])-1):
-        steps.append(previousResults["ind"][i+1]-previousResults["ind"][i])
+    steps = []
+    for i in range(0, len(previousResults["ind"]) - 1):
+        steps.append(previousResults["ind"][i + 1] - previousResults["ind"][i])
 
-    return utility.image_splines.calculate_splines(tuple(previousResults["image_points"]), steps=tuple(steps))
+    return utility.image_splines.calculate_splines(
+        tuple(previousResults["image_points"]), steps=tuple(steps)
+    )
 
 
 def plot_RailComp(interpol, original, previousResults, dist=None):
@@ -177,30 +182,30 @@ def plot_RailComp(interpol, original, previousResults, dist=None):
     plot = plot_ImagePoint(interpol, plot=plot, color=":g")
 
     if dist:
-        x=[]
-        y=[]
+        x = []
+        y = []
         for index in dist:
             x.append(original[index].x)
             y.append(-original[index].y)
-        plot.plot(x,y, "*r")
-        plot.legend(["Original","Interpolation", "max Distances"])
+        plot.plot(x, y, "*r")
+        plot.legend(["Original", "Interpolation", "max Distances"])
     else:
-        plot.legend(["Original","Interpolation"])
+        plot.legend(["Original", "Interpolation"])
     if not os.path.exists("fig"):
         os.mkdir("fig")
-    name = "fig/comparison_left {}.png".format(len(previousResults["ind"])-1)
+    name = "fig/comparison_left {}.png".format(len(previousResults["ind"]) - 1)
     if os.path.exists(name):
-        name = "fig/comparison_right {}.png".format(len(previousResults["ind"])-1)
+        name = "fig/comparison_right {}.png".format(len(previousResults["ind"]) - 1)
 
     plot.figure.savefig(name)
-    plt.close(plot.figure) 
+    plt.close(plot.figure)
 
 
 def linearInterpol(list, points, compare=True):
     """
     I think this is a piecewise linear interpolation?
     """
-    output = {"x": [], "y": [], "xy": [], "m": [], "b":[]}
+    output = {"x": [], "y": [], "xy": [], "m": [], "b": []}
     for i in range(0, len(list["x"]) - 1):
         x1 = list["y"][i]
         x2 = list["y"][i + 1]
@@ -238,26 +243,26 @@ def linearInterpol(list, points, compare=True):
     if compare:
         plt.plot(points["x"], [-y for y in points["y"]], ":g")
         plt.plot(output["x"], [-y for y in output["y"]], ":b")
-        plt.legend(["Original","Interpolation"])
+        plt.legend(["Original", "Interpolation"])
         if not os.path.exists("fig"):
             os.mkdir("fig")
-        name = "fig/comparison_left {}.png".format(len(list["ind"])-1)
+        name = "fig/comparison_left {}.png".format(len(list["ind"]) - 1)
         if os.path.exists(name):
-            name = "fig/comparison_right {}.png".format(len(list["ind"])-1)
+            name = "fig/comparison_right {}.png".format(len(list["ind"]) - 1)
 
         plt.savefig(name)
-        plt.close() 
-    
+        plt.close()
+
     return output
 
 
 def calc_EuclideanArray(original, inteprolation):
     def euclidean(points):
         x1, y1, x2, y2 = points[0], points[1], points[2], points[3]
-        return ((x1 - x2)**2 + (y1 - y2)**2)**0.5
+        return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
 
     original_array = np.vstack([point.point for point in original])
-    interpol_array = np.vstack([point.point for point in inteprolation])   
+    interpol_array = np.vstack([point.point for point in inteprolation])
 
     # if len(original_array) == len(interpol_array)+1:
     #     inter = list(interpol_array)
@@ -274,9 +279,10 @@ def calc_EuclideanArray(original, inteprolation):
     distance_sum = np.sum(distance_array).item()
     return distance_array, distance_sum
 
+
 def approximateKnot(original, previousResults: dict = {}, log=False):
     """
-        Approximate knots
+    Approximate knots
     """
     if not isinstance(original, (np.ndarray, np.generic, list, dict)):
         raise Exception("Expected list, dict or numpy array")
@@ -288,40 +294,40 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
         first_x = original[0].x
         # middle_x = original[middle].x
         last_x = original[-1].x
-        
+
         first_y = original[0].y
         # middle_y = original[middle].y
         last_y = original[-1].y
         previousResults = {
             "x": [
-                first_x, 
-                # middle_x, 
-                last_x
-                ],
+                first_x,
+                # middle_x,
+                last_x,
+            ],
             "y": [
-                first_y, 
+                first_y,
                 # middle_y,
-                last_y
-                ],
+                last_y,
+            ],
             "xy": [
-                [first_x, first_y], 
+                [first_x, first_y],
                 # [middle_x, middle_y],
-                [last_x, last_y]
-                ],
+                [last_x, last_y],
+            ],
             "ind": [
-                0, 
-                # middle, 
-                len(original)
-                ],
-            "image_points":[
+                0,
+                # middle,
+                len(original),
+            ],
+            "image_points": [
                 ImagePoint(first_x, first_y),
                 # ImagePoint(middle_x, middle_y),
                 ImagePoint(last_x, last_y),
             ],
-            "distance":[]
+            "distance": [],
         }
-        
-        # distance measurements depend on interpolation, 
+
+        # distance measurements depend on interpolation,
         # if different interpolation is required changed it here
         # interpol = linearInterpol(previousResults, original)
         interpol = get_CatMul(previousResults)
@@ -332,15 +338,19 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
         # using the results from linear interpolation calculate the euclidean distance between intepolated coordinate and measurement
         original_arr = np.vstack([point.point for point in original])
         interpol_arr = np.vstack([point.point for point in interpol])
-        
+
         if len(original_arr) != len(interpol_arr):
-            raise Exception("Interpolated line does not have the same amount of points as original: {}:{}".format(len(interpol_arr), len(original_arr)))
+            raise Exception(
+                "Interpolated line does not have the same amount of points as original: {}:{}".format(
+                    len(interpol_arr), len(original_arr)
+                )
+            )
 
         dist = []
         for orig_point, inter_point in zip(original_arr, interpol_arr):
             # calculate euclidean distance based on y-axis
-            dist.append(round(np.linalg.norm((orig_point-inter_point), 2), 2))
-            
+            dist.append(round(np.linalg.norm((orig_point - inter_point), 2), 2))
+
         distance_array = np.array(dist, dtype=np.float32)
         distance_sum = np.sum(distance_array).item()
         previousResults["distance"].append(distance_sum)
@@ -358,12 +368,14 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
             argmax_index = [argmax_index[0]]
         else:
             # take the middle knot
-            middle = len(argmax_index)//2
+            middle = len(argmax_index) // 2
             try:
                 argmax_index = [argmax_index[middle]]
                 # argmax_index = [argmax_index[0], argmax_index[-1]]
             except:
-                raise Exception("Distance Index outta bounds {}".format(argmax_index[middle]))
+                raise Exception(
+                    "Distance Index outta bounds {}".format(argmax_index[middle])
+                )
                 # raise Exception("Distance Index outta bounds {} and {}".format(argmax_index[0], argmax_index[-1]))
 
         # use coordinates of point with biggest distance as knot
@@ -377,18 +389,19 @@ def approximateKnot(original, previousResults: dict = {}, log=False):
             previousResults["image_points"].append(ImagePoint(new_x, new_y))
             previousResults["ind"].append(i)
 
-
         # sort lists
         sorted_index = np.array(previousResults["ind"]).argsort()
         previousResults["x"] = (np.array(previousResults["x"])[sorted_index]).tolist()
         previousResults["y"] = (np.array(previousResults["y"])[sorted_index]).tolist()
         previousResults["xy"] = (np.array(previousResults["xy"])[sorted_index]).tolist()
-        previousResults["image_points"] = (np.array(previousResults["image_points"])[sorted_index]).tolist()
-        previousResults["ind"] = (np.array(previousResults["ind"])[sorted_index]).tolist()
-        
+        previousResults["image_points"] = (
+            np.array(previousResults["image_points"])[sorted_index]
+        ).tolist()
+        previousResults["ind"] = (
+            np.array(previousResults["ind"])[sorted_index]
+        ).tolist()
 
     return previousResults, interpol
-
 
 
 def removeDuplicates(target):
@@ -410,12 +423,12 @@ def approximateKnots(points, nKnots=20, log=False):
         approximatedKnots, linearInterpolation = approximateKnot(
             points, previousResults=approximatedKnots, log=log
         )
-    
+
     if log:
         name = "fig/distance_left.json"
         if os.path.exists(name):
             name = "fig/distance_right.json"
-        with open(name, "w", encoding="utf-8") as file: 
+        with open(name, "w", encoding="utf-8") as file:
             json.dump(approximatedKnots["distance"], file, ensure_ascii=False, indent=4)
 
     approximatedKnots = removeDuplicates(approximatedKnots)

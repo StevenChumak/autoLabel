@@ -1,9 +1,9 @@
-from typing import Union, Sequence
 import functools
-from matplotlib.pyplot import step
+from typing import Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
+from matplotlib.pyplot import step
 
 from utility.image_point import IImagePoint, ImagePoint
 
@@ -59,9 +59,9 @@ def CatmullRomChain(P, steps):
     """
     sz = len(P)
     if isinstance(steps, tuple):
-        multiSteps=True
+        multiSteps = True
     else:
-        multiSteps=False
+        multiSteps = False
 
     # The curve C will contain an array of (x, y) points.
     C = []
@@ -70,7 +70,7 @@ def CatmullRomChain(P, steps):
             c = CatmullRomSpline(P[i], P[i + 1], P[i + 2], P[i + 3], steps[i])
         else:
             c = CatmullRomSpline(P[i], P[i + 1], P[i + 2], P[i + 3], steps)
-        
+
         C.extend(c)
 
     return C
@@ -78,8 +78,8 @@ def CatmullRomChain(P, steps):
 
 @functools.cache
 def calculate_splines(
-        points: Union[Sequence[IImagePoint]],
-        steps: Union[int, tuple[int]],
+    points: Union[Sequence[IImagePoint]],
+    steps: Union[int, tuple[int]],
 ) -> list[IImagePoint]:
     """
     Calculate splines in between given Sequence of ImagePoints.

@@ -1,5 +1,5 @@
-import sys
 import pathlib
+import sys
 
 import cv2
 import matplotlib.pyplot as plt
@@ -33,6 +33,7 @@ spline1 = utils.get_BSpline(left["x"], left["y"])
 spline2 = utils.get_BSpline(right["x"], right["y"])
 
 from scipy import interpolate
+
 test = interpolate.UnivariateSpline(left["x"], left["y"])
 knots = test.get_knots()
 plt.plot(left["x"], left["y"], "g", lw=3)
@@ -50,7 +51,7 @@ for knot in knots:
             # lis["y"].append(left["y"][i])
             lis.append([knot, left["y"][i]])
 
-    plt.axvline(knot,color='g')
+    plt.axvline(knot, color="g")
 
 # import numpy as np
 

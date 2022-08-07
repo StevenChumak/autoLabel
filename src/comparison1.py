@@ -1,6 +1,7 @@
-import os
 import glob
 import math
+import os
+
 import cv2
 import numpy as np
 from numpy.polynomial import Laguerre
@@ -43,8 +44,8 @@ for img in predictions:
     rail_img = cv2.cvtColor(rail_data, cv2.COLOR_BGR2GRAY)
 
     import hdbscan
-    from sklearn.cluster import MiniBatchKMeans, KMeans
     import matplotlib.pyplot as plt
+    from sklearn.cluster import KMeans, MiniBatchKMeans
 
     blue = img_array[:, :, 0]
     red = img_array[:, :, 1]
@@ -64,7 +65,7 @@ for img in predictions:
     # clf = KMeans(n_clusters=3)
     # kmeans = clf.fit_predict(samples).reshape(rail_img.shape)
 
-    from skimage.morphology import skeletonize, erosion, dilation, closing
+    from skimage.morphology import closing, dilation, erosion, skeletonize
 
     close = closing(rail_img // 255)
     dila = dilation(rail_img // 255)

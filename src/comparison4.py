@@ -2,7 +2,6 @@ import shutil
 
 import cv2
 import matplotlib.pyplot as plt
-import scipy.interpolate as interpolate
 import splines
 
 from utility import utils

@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import Union
+
 import abc
 import functools
+from typing import Union
+
 import numpy as np
 import numpy.typing as npt
 
