@@ -2,8 +2,8 @@ import shutil
 
 import cv2
 import matplotlib.pyplot as plt
-import splines
 import scipy.interpolate as interpolate
+import splines
 
 from utility import utils
 
@@ -15,7 +15,7 @@ img = cv2.imread("001_input.png")  # read image
 mask = cv2.imread("001_prediction.png")  # read image
 
 nKnots = 20
-logging= True
+logging = True
 
 img_copy = mask.copy()
 
@@ -36,15 +36,22 @@ rail_img = cv2.cvtColor(rail_data, cv2.COLOR_BGR2GRAY)
 skeleton_rails = utils.skel_close_dila(rail_img)
 skeleton_trackbed = utils.skel_close_dila(trackbed_img)
 
-left, right, left_IImage, right_IImage = utils.rail_seperation(skeleton_rails, skeleton_trackbed)
-thicc_left, thicc_right, thicc_left_IImage, thicc_right_IImage = utils.rail_seperation(rail_img, skeleton_trackbed)
+left, right, left_IImage, right_IImage = utils.rail_seperation(
+    skeleton_rails, skeleton_trackbed
+)
+thicc_left, thicc_right, thicc_left_IImage, thicc_right_IImage = utils.rail_seperation(
+    rail_img, skeleton_trackbed
+)
 
 approx_left, lin_left = utils.approximateKnots(left_IImage, nKnots=nKnots, log=logging)
-approx_right, lin_right = utils.approximateKnots(right_IImage, nKnots=nKnots, log=logging)
+approx_right, lin_right = utils.approximateKnots(
+    right_IImage, nKnots=nKnots, log=logging
+)
 
 
 def creatRailCoordinates(left, right, approx_left, approx_right):
     pass
+
 
 def createRailPolygon(original, knots):
     cv2.fillConvexPoly
@@ -52,6 +59,8 @@ def createRailPolygon(original, knots):
 
 
 import numpy as np
+
+
 def calculate_splines(
     points_arr,
     steps: int,
@@ -109,6 +118,26 @@ ax[4] = utils.plot_ImagePoint(lin_right, plot=ax[4], color="*b")
 utils.plot_rail(ax[4], left, right, ":g")
 ax[4].set_title("comparison (points)")
 ax[4].legend()
+
+
+height = mask.shape[0]
+width = mask.shape[1]
+blank_image = np.zeros((height, width, 3), np.uint8)
+for point in approx_left["xy"]:
+    blank_image = cv2.circle(
+        blank_image, point, radius=3, color=(255, 255, 255), thickness=-1
+    )
+for point in approx_right["xy"]:
+    blank_image = cv2.circle(
+        blank_image, point, radius=3, color=(255, 255, 255), thickness=-1
+    )
+added_image = cv2.addWeighted(img, 0.7, blank_image, 0.4, 0)
+
+ax[5].imshow(added_image)
+# ax[5] = utils.plot_ImagePoint(lin_right, plot=ax[5], color="*b")
+# utils.plot_rail(ax[5], left, right, ":g")
+ax[5].set_title("overlay")
+ax[5].legend()
 
 fig.tight_layout()
 plt.show()

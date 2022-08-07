@@ -11,3 +11,6 @@ dependencies:
     - matplotlib
     - scikit-image
     - scikit-learn
+    - pre-commit
+    - black
+    - isort
