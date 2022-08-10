@@ -1,10 +1,10 @@
 
 repos:
-  - repo: https://github.com/Quantco/pre-commit-mirrors-black
-    rev: '22.6.0'  # Use the sha / tag you want to point at
+  - repo: https://github.com/StevenChumak/black
+    rev: '1.0'
     hooks:
-      - id: black-conda
-  - repo: https://github.com/Quantco/pre-commit-mirrors-isort
-    rev: '5.10.1'  # Use the sha / tag you want to point at
+    - id: black-conda
+  - repo: https://github.com/StevenChumak/isort
+    rev: '1.0'
     hooks:
-      - id: isort-conda
+    - id: isort-conda

@@ -4,13 +4,18 @@ channels:
   - defaults
 dependencies:
   - python>=3.6
+  - conda-forge::pre_commit
+  - conda-forge::black
+  - conda-forge::isort
   - numpy
+  - setuptools 
   - pip
   - pip:
     - opencv-python
     - matplotlib
     - scikit-image
     - scikit-learn
-    - pre-commit
-    - black
-    - isort
+    - tqdm
+    # - pre-commit 
+    # - black
+    # - isort

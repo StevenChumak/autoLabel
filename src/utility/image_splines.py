@@ -3,7 +3,6 @@ from typing import Sequence, Union
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib.pyplot import step
 
 from utility.image_point import IImagePoint, ImagePoint
 

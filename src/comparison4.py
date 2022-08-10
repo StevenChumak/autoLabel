@@ -2,7 +2,7 @@ import shutil
 
 import cv2
 import matplotlib.pyplot as plt
-import splines
+import numpy as np
 
 from utility import utils
 
@@ -14,9 +14,11 @@ img = cv2.imread("001_input.png")  # read image
 mask = cv2.imread("001_prediction.png")  # read image
 
 nKnots = 20
-logging = True
+logging = False
+minDistance = 4
+# interpolation = "catmull-rom"
+interpolation = "linear"
 
-img_copy = mask.copy()
 
 # colors used to color different classes
 ego_color = [137, 49, 239]  # left_trackbed     | Blue-Violet
@@ -42,53 +44,41 @@ thicc_left, thicc_right, thicc_left_IImage, thicc_right_IImage = utils.rail_sepe
     rail_img, skeleton_trackbed
 )
 
-approx_left, lin_left = utils.approximateKnots(left_IImage, nKnots=nKnots, log=logging)
+approx_left, lin_left = utils.approximateKnots(
+    left_IImage,
+    nKnots=nKnots,
+    minDistance=minDistance,
+    interpolation=interpolation,
+    log=logging,
+    direction="left",
+)
 approx_right, lin_right = utils.approximateKnots(
-    right_IImage, nKnots=nKnots, log=logging
+    right_IImage,
+    nKnots=nKnots,
+    minDistance=minDistance,
+    interpolation=interpolation,
+    log=logging,
+    direction="right",
 )
 
 
-def creatRailCoordinates(left, right, approx_left, approx_right):
-    pass
+# def creatRailCoordinates(left, right, approx_left, approx_right):
+#     for point in approx_left:
+#         print(point)
 
 
-def createRailPolygon(original, knots):
-    cv2.fillConvexPoly
-    pass
+# def createRailPolygon(original, knots):
+#     cv2.fillConvexPoly
+#     pass
 
 
-import numpy as np
+# left_rail_polygon = createRailPolygon(left, approx_left)
 
+# railCoordinates = creatRailCoordinates(left, right, approx_left, approx_right)
 
-def calculate_splines(
-    points_arr,
-    steps: int,
-):
-    """
-    Calculate splines in between given Sequence of ImagePoints.
-    :param points: Sequence of image points
-    :param steps: Interpolation steps inbetween and including two points
-    :return: List of interpolated ImagePoints
-    """
-    if len(points_arr) > 1:
-        sp = splines.CatmullRom(points_arr, endconditions="natural")
-        total_duration: int = sp.grid[-1] - sp.grid[0]
-        t = np.linspace(0, total_duration, len(points_arr) * steps)
-        splines_arr = sp.evaluate(t)
-
-        spline_points = {"x": [], "y": [], "xy": []}
-        for spline_arr in splines_arr:
-            spline_points["x"].append(spline_arr[0].item())
-            spline_points["y"].append(spline_arr[1].item())
-            spline_points["xy"].append([spline_arr[0].item(), spline_arr[1].item()])
-        return spline_points
-    else:
-        return []
-
-
-left_rail_polygon = createRailPolygon(left, approx_left)
-
-railCoordinates = creatRailCoordinates(left, right, approx_left, approx_right)
+# get bounding box for ego rails
+x, y, w, h = cv2.boundingRect(rail_img)
+margin = 5
 
 fig, axes = plt.subplots(2, 3, figsize=(10, 10))
 ax = axes.ravel()
@@ -106,37 +96,55 @@ ax[2] = utils.plot_ImagePoint(lin_right, plot=ax[2], color="*r")
 ax[2].set_title("approx interpol")
 ax[2].legend()
 
-ax[3] = utils.plot_ImagePoint(lin_left, plot=ax[3], color="b")
-ax[3] = utils.plot_ImagePoint(lin_right, plot=ax[3], color="b")
-utils.plot_rail(ax[3], left, right, "g")
-ax[3].set_title("comparison (matplotlib interpolation")
-ax[3].legend()
+# ax[3] = utils.plot_ImagePoint(lin_left, plot=ax[3], color="b")
+# ax[3] = utils.plot_ImagePoint(lin_right, plot=ax[3], color="b")
+# utils.plot_rail(ax[3], left, right, "g")
+# ax[3].set_title("comparison (matplotlib interpolation")
+# ax[3].legend()
 
-ax[4] = utils.plot_ImagePoint(lin_left, plot=ax[4], color="*b")
-ax[4] = utils.plot_ImagePoint(lin_right, plot=ax[4], color="*b")
-utils.plot_rail(ax[4], left, right, ":g")
-ax[4].set_title("comparison (points)")
-ax[4].legend()
+ax[3] = utils.plot_ImagePoint(lin_left, plot=ax[3], color="*b")
+ax[3] = utils.plot_ImagePoint(lin_right, plot=ax[3], color="*b")
+utils.plot_rail(ax[3], left, right, ":g")
+ax[3].set_title("comparison (points)")
+ax[3].legend()
 
 
 height = mask.shape[0]
 width = mask.shape[1]
 blank_image = np.zeros((height, width, 3), np.uint8)
-for point in approx_left["xy"]:
-    blank_image = cv2.circle(
-        blank_image, point, radius=3, color=(255, 255, 255), thickness=-1
+for point in approx_left["image_points"]:
+    circled = cv2.circle(
+        blank_image, point.point, radius=3, color=(255, 255, 255), thickness=-1
     )
-for point in approx_right["xy"]:
-    blank_image = cv2.circle(
-        blank_image, point, radius=3, color=(255, 255, 255), thickness=-1
+for point in approx_right["image_points"]:
+    circled = cv2.circle(
+        circled, point.point, radius=3, color=(255, 255, 255), thickness=-1
     )
-added_image = cv2.addWeighted(img, 0.7, blank_image, 0.4, 0)
+added_image = cv2.addWeighted(img, 0.7, circled, 0.4, 0)
+cropped = added_image[y - margin : y + h + margin, x - margin : x + w + margin]
 
-ax[5].imshow(added_image)
-# ax[5] = utils.plot_ImagePoint(lin_right, plot=ax[5], color="*b")
-# utils.plot_rail(ax[5], left, right, ":g")
-ax[5].set_title("overlay")
-ax[5].legend()
+ax[4].imshow(cropped)
+ax[4].set_title("overlay")
+ax[4].legend()
+
+
+blank_image = np.zeros((height, width), np.uint8)
+
+grayscale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+edges = cv2.Canny(grayscale, 90, 255)
+edges = np.array(np.where(edges != 0, 255, 0), dtype=np.uint8)
+
+color_rail = np.array(np.stack([rail_img, rail_img, rail_img], axis=2), dtype=np.uint8)
+color_edge = np.stack([edges, blank_image, blank_image], axis=2)
+added_image = cv2.addWeighted(color_rail, 0.4, color_edge, 1, 0)
+
+cropped = added_image[y - margin : y + h + margin, x - margin : x + w + margin]
 
 fig.tight_layout()
+plt.savefig("figure.png")
 plt.show()
+
+# plt.imshow(cropped, cmap='gray')
+# plt.set_title("canny ")
+# plt.legend()
+# plt.show()
