@@ -3,6 +3,7 @@ import math
 import os
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.polynomial import Laguerre
 
@@ -43,18 +44,17 @@ for img in predictions:
     rail_data = mask_to_class(img_array, color=color)
     rail_img = cv2.cvtColor(rail_data, cv2.COLOR_BGR2GRAY)
 
-    import hdbscan
-    import matplotlib.pyplot as plt
-    from sklearn.cluster import KMeans, MiniBatchKMeans
+    # import hdbscan
+    # from sklearn.cluster import KMeans, MiniBatchKMeans
 
-    blue = img_array[:, :, 0]
-    red = img_array[:, :, 1]
-    green = img_array[:, :, 2]
-    original_shape = red.shape
+    # blue = img_array[:, :, 0]
+    # red = img_array[:, :, 1]
+    # green = img_array[:, :, 2]
+    # original_shape = red.shape
 
-    samples = np.column_stack([red.flatten(), green.flatten(), blue.flatten()])
+    # samples = np.column_stack([red.flatten(), green.flatten(), blue.flatten()])
 
-    image_gray = rail_img.reshape(rail_img.shape[0] * rail_img.shape[1], 1)
+    # image_gray = rail_img.reshape(rail_img.shape[0] * rail_img.shape[1], 1)
 
     # clusterer = hdbscan.HDBSCAN(min_cluster_size=10)
     # cluster_labels = clusterer.fit_predict(image_gray).reshape(rail_img.shape)
@@ -73,12 +73,14 @@ for img in predictions:
 
     dila_close = closing(dila)
     close_dila = dilation(close)
+    ero_close_dila = erosion(closing(dila))
 
     skeleton_close = skeletonize(close)
     skeleton_dila = skeletonize(dila)
 
     skeleton_dila_close = skeletonize(dila_close)
     skeleton_close_dila = skeletonize(close_dila)
+    skeleton_ero_close_dila = skeletonize(erosion(close_dila))
 
     fig, axes = plt.subplots(4, 3, figsize=(10, 10))
     ax = axes.ravel()
@@ -90,6 +92,8 @@ for img in predictions:
     ax[2].imshow(dila)  # , cmap=plt.cm.gray)
     ax[2].set_title("Pure dilatation")
 
+    ax[3].imshow(ero_close_dila)  # , cmap=plt.cm.gray)
+    ax[3].set_title("ero_close_dila")
     ax[4].imshow(dila_close)  # , cmap=plt.cm.gray)
     ax[4].set_title("dila_close")
     ax[5].imshow(close_dila)  # , cmap=plt.cm.gray)
@@ -102,8 +106,8 @@ for img in predictions:
     ax[8].imshow(skeleton_dila)  # , cmap=plt.cm.gray)
     ax[8].set_title("skeleton_dila")
 
-    # ax[9].imshow(skeleton_eros_dila)#, cmap=plt.cm.gray)
-    # ax[9].set_title("skeleton_eros_dila")
+    ax[9].imshow(skeleton_ero_close_dila)  # , cmap=plt.cm.gray)
+    ax[9].set_title("skeleton_ero_close_dila")
     ax[10].imshow(skeleton_dila_close)  # , cmap=plt.cm.gray)
     ax[10].set_title("skeleton_dila_close")
     ax[11].imshow(skeleton_close_dila)  # , cmap=plt.cm.gray)

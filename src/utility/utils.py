@@ -5,34 +5,90 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate
-from skimage.morphology import binary_closing, binary_dilation, skeletonize
+from skimage.morphology import (binary_closing, binary_dilation,
+                                binary_erosion, binary_opening, closing,
+                                dilation, erosion, opening, skeletonize)
 
 import utility.image_splines
 from utility.image_point import ImagePoint
 
 
-def mask_to_class(mask, color):
+def mask_to_class(mask, color, gray=False):
     """
     Change each value of a numpy array according to mapping.
     Returns a uint8 numpy array with changed values
     """
+    if gray:
+        holder = np.zeros((mask.shape[0], mask.shape[1]))
 
-    r = color[0]
-    g = color[1]
-    b = color[2]
+        for i in color:
+            holder += np.where(mask == i, 255, 0)
+            test = np.unique(holder)
+    else:
+        r = color[0]
+        g = color[1]
+        b = color[2]
 
-    holder = np.where(mask == [b, g, r], 255, 0)
+        holder = np.where(mask == [b, g, r], 255, 0)
 
     return np.uint8(holder)
 
 
-def skel_close_dila(img):
+def pre_process(
+    img,
+    dila=True,
+    close=True,
+    ero=False,
+    open=False,
+    skeleton=True,
+    fast=True,
+    mask=False,
+):
     # reduce the objects to 1-2 pixel wide representation
     # dilatation is used first due to rails not being continues up until the end all of the time
     # more info at: https://scikit-image.org/docs/stable/auto_examples/edges/plot_skeleton.html
-    return np.array(
-        skeletonize(binary_closing(binary_dilation(img // 255))) * 255, dtype=np.uint8
-    )
+
+    if mask:
+        mask = np.array(
+            [
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+            ]
+        )
+    else:
+        mask = None
+
+    if fast:
+        img = img // 255
+    if dila:
+        if not fast:
+            dilation(img, mask, out=img)
+        else:
+            binary_dilation(img, mask, out=img)
+    if close:
+        if not fast:
+            closing(img, mask, out=img)
+        else:
+            binary_closing(img, mask, out=img)
+    if ero:
+        if not fast:
+            erosion(img, mask, out=img)
+        else:
+            binary_erosion(img, mask, out=img)
+    if open:
+        if not fast:
+            opening(img, mask, out=img)
+        else:
+            binary_opening(img, mask, out=img)
+    if skeleton and fast:
+        img = skeletonize(img)
+    if fast:
+        img = img * 255
+
+    return np.array(img, dtype=np.uint8)
 
 
 def line_compare(image, line):
@@ -140,18 +196,18 @@ def get_BSpline(x, y, k=4, s=0, knots=None):
     return {"x": spline[0], "y": spline[1], "xy": xy, "tck": tck, "u": u}
 
 
-def plot_rail(ax: plt.Axes, left, right, color):
+def plot_rail(ax: plt.Axes, left, right, color, label=None):
     if isinstance(color, list):
         ax.plot(left["x"], [-y for y in left["y"]], color[0])
-        ax.plot(right["x"], [-y for y in right["y"]], color[1])
+        ax.plot(right["x"], [-y for y in right["y"]], color[1], label=label)
     else:
         ax.plot(left["x"], [-y for y in left["y"]], color)
-        ax.plot(right["x"], [-y for y in right["y"]], color)
+        ax.plot(right["x"], [-y for y in right["y"]], color, label=label)
 
     return ax
 
 
-def plot_ImagePoint(points, plot=None, color=None):
+def plot_ImagePoint(points, plot=None, color=None, label=None):
     if not color:
         color = ":g"
     x = []
@@ -160,10 +216,11 @@ def plot_ImagePoint(points, plot=None, color=None):
         x.append(point.x)
         y.append(-point.y)
     if plot:
-        plot.plot(x, y, color)
+        plot.plot(x, y, color, label=label)
     else:
         plot = plt.axes()
-        plot.plot(x, y, color)
+        plot.plot(x, y, color, label=label)
+
     return plot
 
 

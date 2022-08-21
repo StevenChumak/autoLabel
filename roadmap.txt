@@ -1,0 +1,75 @@
+done:
+	generate pixelmask via NN
+	seperate left and right rail
+	
+	approximate knotpoints for catmull-rom (and piecewise linear)
+		(ego only)
+	generate RailLabel compatible .json
+
+partly:
+	approximation for neighbor rails
+		(
+			+differentiation of disconnected neighbors
+			+extraction of neighbors
+
+			+/-transform to fit track in image center
+			
+			- network capable of good segmentation results
+		)
+	full pipeline image-> RailLabel compatible .json file 
+		(
+			+currently segmentation results created seperately
+			+video extraction/ image search + segmentation via NN
+
+			- apply knotpoint approximation	(implemented, not connected)
+			- write .json file				(implemented, not connected)
+		)
+
+missing:
+	quality control
+		(
+			switch segmentation?
+			compare optical flow between image and segmentation -> log if difference big
+			check for number of ego tracks -> max 1
+				default to biggest area for knot approximation -> log either way
+		)
+
+	(missing data)
+	video transformer
+		(
+			https://paperswithcode.com/sota/instance-segmentation-on-coco-minival as reference
+				https://github.com/IDEACVR/DINO - PyTorch implementation
+				https://github.com/microsoft/Swin-Transformer - PyTorch implementation
+
+		)
+	semi-automatic mode 
+		(
+			manually set points are moved according to changes in image
+				feature-tracking?
+		)
+	
+	
+removed:
+	spline network due to licenses
+	https://github.com/fidler-lab/curve-gcn
+	
+	
+prospect:
+	refine NN-segmentation via edge detection
+		(higher likelyhood of placing knotpoint in the middle of railhead)
+		
+	problem:
+		mask creation requires camera extrinsics for accurate results
+			-> save fillConvexPoly() contour points in .json file
+				-> use edge detection refined nn-segmentation for contour calculation?
+				-> 3 sets of knotpoints (middle, out, inner) per rail?
+					-> generate Catmull-Rom spline for all 3 -> draw contour?
+		
+yolo - labeling tool? bounding boxes raus bekommen - auscshneiden und knotenpunkte brechnen?
+
+interpolation zwischen 2 laben und den bildern zwischen diesen label
+
+skeleton vom trackbed zur plausibilität nutzen
+
+NLB_fall - letzter chunk
+NLB_spring

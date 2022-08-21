@@ -24,8 +24,8 @@ rail_data = utils.mask_to_class(img, color=ego_rail_color)
 trackbed_img = cv2.cvtColor(trackbed_data, cv2.COLOR_BGR2GRAY)
 rail_img = cv2.cvtColor(rail_data, cv2.COLOR_BGR2GRAY)
 
-skeleton_rails = utils.skel_close_dila(rail_img)
-skeleton_trackbed = utils.skel_close_dila(trackbed_img)
+skeleton_rails = utils.pre_process(rail_img)
+skeleton_trackbed = utils.pre_process(trackbed_img)
 
 left, right = utils.rail_seperation(skeleton_rails, skeleton_trackbed)
 

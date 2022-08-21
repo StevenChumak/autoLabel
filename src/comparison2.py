@@ -1,7 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 
-from utility import utils
+from utility import old_utils as utils
 
 raillabel_path = r"C:\Users\St\Desktop\Git\raillabel"
 
