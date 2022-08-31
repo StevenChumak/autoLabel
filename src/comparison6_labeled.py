@@ -1,5 +1,6 @@
 import pathlib
 import shutil
+from unittest import result
 
 import cv2
 import matplotlib.pyplot as plt
@@ -81,8 +82,9 @@ def fill_colormap():
 def rotateAndScale(img, rect, position, scaleFactor=0.5):
     # edited version of source: https://stackoverflow.com/a/33247373 by Luke
     # last accessed on 17.08.22
-
-    angle = -rect[2] if position == "left" else 90 - rect[2]
+    if position == "left":
+        test = 0
+    angle = rect[2] if position == "left" else -(90 + rect[2])
     (oldY, oldX) = img.shape[
         0:2
     ]  # note: numpy uses (y,x) convention but most OpenCV functions use (x,y)
@@ -158,6 +160,7 @@ for i, data in enumerate(zip(images, masks)):
     ego_rail_color = [51]  # left_rails        | Jonquil oder auch gelb
     neighbor_trackbed_color = [48, 52]  # ego_trackbed      | Spanish Crimson
     neighbor_rail_color = [49, 53]  # ego_trackbed      | Spanish Crimson
+
     neighbor_single = np.concatenate((neighbor_trackbed_color, neighbor_rail_color))
 
     # convert colorized labal to class
@@ -180,26 +183,6 @@ for i, data in enumerate(zip(images, masks)):
     # following code is an adaptations of:
     # source: https://medium.com/swlh/image-processing-with-python-connected-components-and-region-labeling-3eef1864b951
     from skimage.measure import find_contours, label, regionprops
-
-    # ego_x, ego_y, ego_w, ego_h = cv2.boundingRect(rail_data)
-    # ego_points=np.float32([[ego_x,ego_y], [ego_x, ego_y+ego_h], [ego_x+ego_w, ego_y], [ego_x+ego_w, ego_y+ego_h]])
-    # p4 = [ego_x, ego_y+ego_h]
-    # p1 = [ego_x, ego_y]
-    # p2 = [ego_x+ego_w, ego_y]
-    # p3 = [ego_x+ego_w, ego_y+ego_h]
-    # w1 = int(np.linalg.norm(np.array(p2) - np.array(p3)))
-    # w2 = int(np.linalg.norm(np.array(p4) - np.array(p1)))
-    # h1 = int(np.linalg.norm(np.array(p1) - np.array(p2)))
-    # h2 = int(np.linalg.norm(np.array(p3) - np.array(p4)))
-    # maxWidth = max(w1, w2)
-    # maxHeight = max(h1, h2)
-    # colors=[[0, 0, 255], [0, 255, 0], [255, 0, 0], [255, 255, 255]]
-    # for point, color in zip(ego_points, colors):
-    #     img = cv2.circle(img, point, 3, color, 3)
-    # img = cv2.rectangle(img,(ego_x,ego_y),(ego_x+ego_w,ego_y+ego_h),(0,255,0),2)
-    # ego_contours, _ = cv2.findContours(rail_data, 1, 1)
-    # ego_rect = cv2.minAreaRect(ego_contours[0])
-    # ego_box = np.array(cv2.boxPoints(ego_rect), dtype=np.int0)
 
     gray_mask = utils.pre_process(gray_mask, fast=False)
     label_im = label(gray_mask, connectivity=2)
@@ -308,10 +291,10 @@ for i, data in enumerate(zip(images, masks)):
         localized_mask = np.uint8(label_im == counter + 1)
         x, y, w, h = cv2.boundingRect(localized_mask)
 
-        p1 = [x, y + h]
-        p4 = [x, y]
-        p3 = [x + w, y]
-        p2 = [x + w, y + h]
+        p1 = [x, y + h]  # red dot
+        p4 = [x, y]  # white dot
+        p3 = [x + w, y]  # blue dot
+        p2 = [x + w, y + h]  # green dot
 
         w1 = int(np.linalg.norm(np.array(p2) - np.array(p3)))
         w2 = int(np.linalg.norm(np.array(p4) - np.array(p1)))
@@ -330,9 +313,9 @@ for i, data in enumerate(zip(images, masks)):
         output_poins = np.float32(
             [
                 [0, 0],
-                [0, maxHeight - 1],
-                [maxWidth - 1, maxHeight - 1],
-                [maxWidth - 1, 0],
+                [0, maxHeight],
+                [maxWidth, maxHeight],
+                [maxWidth, 0],
             ]
         )
 
@@ -340,11 +323,33 @@ for i, data in enumerate(zip(images, masks)):
         result = cv2.warpPerspective(
             mask, matrix, (maxWidth, maxHeight), cv2.INTER_LINEAR
         )
-        # if position == "right":
-        #     result = cv2.flip(result, 1)
 
-        # matrix = cv2.getPerspectiveTransform(neighbor_points, ego_points)
-        # result = cv2.warpPerspective(img, matrix, (maxWidth, maxHeight))
+        labels = {
+            "trackbed": neighbor_trackbed_color,
+            "rails": neighbor_rail_color,
+        }
+
+        output_dict = utils.approxRails(result, labels=labels, logging=False)
+
+        inverted_left = []
+        inverted_right = []
+        inv_matrix = cv2.invert(matrix)
+        color = (255, 255, 255)
+        for point in output_dict["left"]["knots"]:
+            x, y = (
+                cv2.transform(np.array([[[point.x, point.y]]]), inv_matrix[1]).squeeze()
+            )[:2]
+            inverted_left.append([x, y])
+            img_withKnots = cv2.circle(img, (x, y), 1, color, 5)
+        for point in output_dict["right"]["knots"]:
+            x, y = (
+                cv2.transform(np.array([[[point.x, point.y]]]), inv_matrix[1]).squeeze()
+            )[:2]
+            inverted_right.append([x, y])
+            img_withKnots = cv2.circle(img_withKnots, (x, y), 1, color, 5)
+        cv2.imwrite(
+            str(test_path / "{}_original_withKnots.png".format(counter)), img_withKnots
+        )
 
         region_mask_red = region_mask * 255
         region_mask_green = np.zeros([region_mask.shape[0], region_mask.shape[1]])
