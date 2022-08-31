@@ -62,6 +62,9 @@ approx_right, lin_right = utils.approximateKnots(
     direction="right",
 )
 
+labels = {"trackbed": [137, 49, 239], "rails": [242, 202, 25]}
+
+output = utils.approxRails(mask, labels=labels)
 
 # def creatRailCoordinates(left, right, approx_left, approx_right):
 #     for point in approx_left:

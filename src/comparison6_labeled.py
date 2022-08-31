@@ -1,6 +1,5 @@
 import pathlib
 import shutil
-from unittest import result
 
 import cv2
 import matplotlib.pyplot as plt

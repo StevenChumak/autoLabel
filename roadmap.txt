@@ -1,6 +1,6 @@
 done:
 	generate pixelmask via NN
-	seperate left and right rail
+	seperate left and right rail (ego track tested)
 	
 	approximate knotpoints for catmull-rom (and piecewise linear)
 		(ego only)
@@ -12,9 +12,14 @@ partly:
 			+differentiation of disconnected neighbors
 			+extraction of neighbors
 
-			+/-transform to fit track in image center
+			+transform to fit track in image center
 			
+			+/- knotpoint approximation, transform back to original image coordinates missing
+
 			- network capable of good segmentation results
+				- background augmentation?
+				- widen neighbor tracks to match ego-track
+					- get camera extrinsics via rails?
 		)
 	full pipeline image-> RailLabel compatible .json file 
 		(
@@ -27,16 +32,24 @@ partly:
 
 missing:
 	quality control
-		(
+		(	
 			switch segmentation?
 			compare optical flow between image and segmentation -> log if difference big
+				- how?
 			check for number of ego tracks -> max 1
-				default to biggest area for knot approximation -> log either way
+				- default to biggest area (surrounded by rails left/right) for knot approximation -> log either way
+			log neighbors in previous x frames -> log at high sudden drop
+			median of x previous segmentation masks -> log at high sudden change
+				- use skeleton of trackbeds
+					- calc euclidean distance between x previous-current
+						- subtle changes in distances acceptable
+						- "near field" should remain mostly the same
 		)
 
-	(missing data)
 	video transformer
 		(
+			MISSING DATASET
+
 			https://paperswithcode.com/sota/instance-segmentation-on-coco-minival as reference
 				https://github.com/IDEACVR/DINO - PyTorch implementation
 				https://github.com/microsoft/Swin-Transformer - PyTorch implementation
@@ -48,12 +61,10 @@ missing:
 				feature-tracking?
 		)
 	
-	
 removed:
 	spline network due to licenses
 	https://github.com/fidler-lab/curve-gcn
-	
-	
+		
 prospect:
 	refine NN-segmentation via edge detection
 		(higher likelyhood of placing knotpoint in the middle of railhead)
@@ -64,7 +75,41 @@ prospect:
 				-> use edge detection refined nn-segmentation for contour calculation?
 				-> 3 sets of knotpoints (middle, out, inner) per rail?
 					-> generate Catmull-Rom spline for all 3 -> draw contour?
-		
+
+
+
+
+Timetable:
+knot approximateion - 4 weeks
+video transformer - 1 week
+semi-manual mode - 2-3weeks
+QC - rest
+
+Start: 6.7.22
+
+Current: 7 Weeks in (23.08)
+Total:	21 weeks
+
+Finish: 30.11.22
+
+New:
+knot approximateion - 8 weeks
+semi-manual mode - 2 weeks
+QC - 1 week
+video transformer - 1week
+	- depends on dataset progress
+	- minor adjustments due to different output(instance segmentation) required
+
+Write-Up: 9 weeks?
+
+
+
+
+
+
+
+
+
 yolo - labeling tool? bounding boxes raus bekommen - auscshneiden und knotenpunkte brechnen?
 
 interpolation zwischen 2 laben und den bildern zwischen diesen label
@@ -73,3 +118,18 @@ skeleton vom trackbed zur plausibilität nutzen
 
 NLB_fall - letzter chunk
 NLB_spring
+
+
+
+###### full integration labeltool #####
+
+mark auto-labeled chunks as auto-labeled INSIDE the labeltool 
+
+abukhashab -> inversion(?) to validate autolabel results
+
+semi-auto:
+	calc tramsformation matrix using features from feature points -> use transformation on semi-auto points
+	image RoI to move knotspoints fails with edge detection and NN
+	simply move knotpoints between 2 consecutive frames
+
+workflow diagram

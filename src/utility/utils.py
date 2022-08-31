@@ -18,17 +18,26 @@ def mask_to_class(mask, color, gray=False):
     Change each value of a numpy array according to mapping.
     Returns a uint8 numpy array with changed values
     """
+
+    if len(mask.shape) == 2:
+        gray = True
+    elif mask.shape[2] == 1:
+        gray = True
+    else:
+        gray = False
+
     if gray:
         holder = np.zeros((mask.shape[0], mask.shape[1]))
 
         for i in color:
             holder += np.where(mask == i, 255, 0)
-            test = np.unique(holder)
+            # sanity check for debugging
+            # test = np.unique(holder)
     else:
         r = color[0]
         g = color[1]
         b = color[2]
-
+        # convert RGB color to BGR (opencv)
         holder = np.where(mask == [b, g, r], 255, 0)
 
     return np.uint8(holder)
@@ -528,3 +537,47 @@ def approximateKnots(
                     )
 
             return previousResults, interpolated
+
+
+def approxRails(
+    rail_img,
+    labels={
+        "trackbed": [1],
+        "rails": [2],
+    },
+    interpolation="catmull-rom",
+    nKnots=20,
+    minDistance=4,
+    logging=False,
+):
+    trackbed_data = mask_to_class(rail_img, color=labels["trackbed"])
+    rail_data = mask_to_class(rail_img, color=labels["rails"])
+
+    skeleton_trackbed = pre_process(trackbed_data)
+    skeleton_rails = pre_process(rail_data)
+
+    left, right, left_IImage, right_IImage = rail_seperation(
+        skeleton_rails, skeleton_trackbed
+    )
+
+    approx_left, spline_left = approximateKnots(
+        left_IImage,
+        nKnots=nKnots,
+        minDistance=minDistance,
+        interpolation=interpolation,
+        log=logging,
+        direction="left",
+    )
+    approx_right, spline_right = approximateKnots(
+        right_IImage,
+        nKnots=nKnots,
+        minDistance=minDistance,
+        interpolation=interpolation,
+        log=logging,
+        direction="right",
+    )
+
+    return {
+        "left": {"knots": approx_left["image_points"], "spline": spline_left},
+        "right": {"knots": approx_right["image_points"], "spline": spline_right},
+    }

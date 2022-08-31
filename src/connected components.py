@@ -13,7 +13,7 @@ raillabel_path = r"C:\Users\St\Desktop\Git\raillabel"
 
 img_path = "001_input.png"
 mask_path = "001_prediction.png"
-test_path = "test.png"
+test_path = "bad_pred.png"
 img = cv2.imread(img_path)  # read image
 mask = cv2.imread(mask_path)  # read mask
 test = cv2.imread(test_path)  # read image
@@ -82,4 +82,4 @@ def connected_component_label(path=None, img=None):
     plt.show()
 
 
-connected_component_label(img=test_processed)
+connected_component_label(img=neighor_trackbed)
